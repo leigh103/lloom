@@ -16,6 +16,7 @@
     <h1 id="agent-name">Lloom</h1>
     <p id="agent-description">Personal Ollama agent</p>
   </div>
+  <button id="train-btn" onclick="runTraining()" title="Re-train from API services">train</button>
   <div class="status">
     <div class="status-dot" id="status-dot"></div>
     <span id="status-text">connecting...</span>
@@ -110,6 +111,26 @@
   }
 
   checkHealth();
+
+  async function runTraining() {
+    const btn = document.getElementById('train-btn');
+    btn.disabled = true;
+    btn.textContent = 'training...';
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (API_KEY) headers['x-api-key'] = API_KEY;
+      const res = await fetch(`${API_BASE}/train`, { method: 'POST', headers, body: '{}' });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      const summary = data.results?.map(r => r.error ? `${r.service}: failed` : `${r.service}: ${r.count} items`).join(', ') || data.message;
+      btn.textContent = summary;
+      setTimeout(() => { btn.textContent = 'train'; }, 3000);
+    } catch (err) {
+      btn.textContent = 'failed';
+      setTimeout(() => { btn.textContent = 'train'; }, 3000);
+    }
+    btn.disabled = false;
+  }
 
   // Simple markdown renderer
   function renderMarkdown(text) {

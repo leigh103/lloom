@@ -1,5 +1,6 @@
 import express from 'express';
 import { askMildred, askMildredStream } from '../agent.js';
+import { runTraining } from '../ingest/train.js';
 
 export const router = express.Router();
 
@@ -40,7 +41,6 @@ router.post('/chat', auth, async (req, res) => {
  */
 router.post('/chat/stream', auth, async (req, res) => {
   const { message, history = [], location } = req.body;
-  console.log(`💬 /chat/stream received: "${message?.slice(0, 80)}"`);
 
   if (!message?.trim()) {
     return res.status(400).json({ error: 'message is required' });
@@ -70,6 +70,23 @@ router.post('/chat/stream', auth, async (req, res) => {
     console.error(`💬 /chat/stream error:`, err.message);
     res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
     res.end();
+  }
+});
+
+/**
+ * POST /api/train
+ * Body: { service?: string }  — omit to train all services
+ */
+router.post('/train', auth, async (req, res) => {
+  const { service } = req.body || {};
+  try {
+    const results = await runTraining(service || null);
+    if (results.length === 0) {
+      return res.json({ message: 'No trainable services found' });
+    }
+    res.json({ results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

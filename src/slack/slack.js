@@ -5,7 +5,7 @@ import 'dotenv/config';
 
 export function startSlack() {
   if (!process.env.SLACK_BOT_TOKEN) {
-    console.log('ℹ️  Slack not configured (no SLACK_BOT_TOKEN) — skipping');
+  //  console.log('ℹ️  Slack not configured (no SLACK_BOT_TOKEN) — skipping');
     return;
   }
 

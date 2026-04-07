@@ -95,43 +95,59 @@ async function trainService(service) {
     fs.writeFileSync(path.join(outDir, filename), markdown, 'utf-8');
   }
 
-  return outDir;
+  return { outDir, count: items.length };
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
-
-if (!fs.existsSync(SERVICES_PATH)) process.exit(0);
-
-const files = fs.readdirSync(SERVICES_PATH).filter(f => f.endsWith('.json'));
-const outDirs = [];
-
-for (const file of files) {
-  let service;
-  try {
-    const raw = fs.readFileSync(path.join(SERVICES_PATH, file), 'utf-8');
-    service = JSON.parse(raw);
-  } catch (err) {
-    console.error(`Failed to parse ${file}:`, err.message);
-    continue;
-  }
-
-  if (!service.train) continue;
-
-  if (service.auth?.value?.startsWith('env:')) {
-    const envKey = service.auth.value.slice(4);
-    service.auth = { ...service.auth, value: process.env[envKey] || null };
-  }
-
-  try {
-    const outDir = await trainService(service);
-    if (outDir) outDirs.push(outDir);
-  } catch (err) {
-    console.error(`Failed to train ${service.name}:`, err.message);
-  }
+function loadServices() {
+  if (!fs.existsSync(SERVICES_PATH)) return [];
+  return fs.readdirSync(SERVICES_PATH)
+    .filter(f => f.endsWith('.json'))
+    .map(file => {
+      try {
+        const service = JSON.parse(fs.readFileSync(path.join(SERVICES_PATH, file), 'utf-8'));
+        if (!service.train) return null;
+        if (service.auth?.value?.startsWith('env:')) {
+          const envKey = service.auth.value.slice(4);
+          service.auth = { ...service.auth, value: process.env[envKey] || null };
+        }
+        return service;
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
 }
 
-for (const dir of outDirs) {
-  await ingestAll(dir);
+/**
+ * Run training for all configured services (or a specific one by name).
+ * Returns an array of result objects: { service, count, error? }
+ */
+export async function runTraining(serviceName = null) {
+  const services = loadServices().filter(s => !serviceName || s.name === serviceName);
+  const results = [];
+
+  for (const service of services) {
+    try {
+      const result = await trainService(service);
+      if (result) {
+        await ingestAll(result.outDir);
+        results.push({ service: service.name, count: result.count });
+      }
+    } catch (err) {
+      results.push({ service: service.name, error: err.message });
+    }
+  }
+
+  return results;
 }
 
-process.exit(0);
+// ─── CLI entry point ──────────────────────────────────────────────────────────
+
+if (process.argv[1].endsWith('train.js')) {
+  const results = await runTraining();
+  for (const r of results) {
+    if (r.error) console.error(`✗ ${r.service}: ${r.error}`);
+    else console.log(`✓ ${r.service}: ${r.count} items ingested`);
+  }
+  process.exit(0);
+}

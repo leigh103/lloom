@@ -90,6 +90,22 @@ header {
 
 .status-dot.offline { background: var(--red); box-shadow: 0 0 6px var(--red); animation: none; }
 
+#train-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+#train-btn:hover { border-color: var(--accent); color: var(--accent); }
+#train-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
