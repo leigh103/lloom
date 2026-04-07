@@ -41,18 +41,18 @@
 
 <script>
   // iOS Safari keyboard fix — translate footer above keyboard
-  if (window.visualViewport) {
-    const footerEl = document.querySelector('footer');
-    function onViewportChange() {
-      const vv = window.visualViewport;
-      const offsetBottom = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      footerEl.style.transform = offsetBottom > 0 ? `translateY(-${offsetBottom}px)` : '';
-      window.scrollTo(0, 0);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-    window.visualViewport.addEventListener('resize', onViewportChange);
-    window.visualViewport.addEventListener('scroll', onViewportChange);
-  }
+  // if (window.visualViewport) {
+  //   const footerEl = document.querySelector('footer');
+  //   function onViewportChange() {
+  //     const vv = window.visualViewport;
+  //     const offsetBottom = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  //     footerEl.style.transform = offsetBottom > 0 ? `translateY(-${offsetBottom}px)` : '';
+  //     window.scrollTo(0, 0);
+  //     messagesEl.scrollTop = messagesEl.scrollHeight;
+  //   }
+  //   window.visualViewport.addEventListener('resize', onViewportChange);
+  //   window.visualViewport.addEventListener('scroll', onViewportChange);
+  // }
 
   const API_KEY = ''; // Set your API key here, or leave blank if none
   const API_BASE = window.location.origin + '/api';
