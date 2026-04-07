@@ -3,6 +3,7 @@ import path from 'path';
 import axios from 'axios';
 import 'dotenv/config';
 import { ingestAll } from './ingest.js';
+import { scrapeService } from './scrape.js';
 
 const SERVICES_PATH = process.env.API_SERVICES_PATH || './config/apis';
 const DOCS_PATH = process.env.DOCS_PATH || './docs';
@@ -105,7 +106,7 @@ function loadServices() {
     .map(file => {
       try {
         const service = JSON.parse(fs.readFileSync(path.join(SERVICES_PATH, file), 'utf-8'));
-        if (!service.train) return null;
+        if (!service.train && !service.scrape) return null;
         if (service.auth?.value?.startsWith('env:')) {
           const envKey = service.auth.value.slice(4);
           service.auth = { ...service.auth, value: process.env[envKey] || null };
@@ -128,12 +129,15 @@ export async function runTraining(serviceName = null) {
 
   for (const service of services) {
     try {
-      const result = await trainService(service);
+      const result = service.scrape
+        ? await scrapeService(service)
+        : await trainService(service);
       if (result) {
         await ingestAll(result.outDir);
         results.push({ service: service.name, count: result.count });
       }
     } catch (err) {
+      console.error(`Training error for ${service.name}:`, err.config?.url || '', err.message);
       results.push({ service: service.name, error: err.message });
     }
   }
@@ -143,7 +147,7 @@ export async function runTraining(serviceName = null) {
 
 // ─── CLI entry point ──────────────────────────────────────────────────────────
 
-if (process.argv[1].endsWith('train.js')) {
+if (process.argv[1]?.endsWith('train.js')) {
   const results = await runTraining();
   for (const r of results) {
     if (r.error) console.error(`✗ ${r.service}: ${r.error}`);
