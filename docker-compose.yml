@@ -2,7 +2,7 @@ services:
   lloom:
     build: .
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-11003}:11003"
     env_file: .env
     volumes:
       - ./data:/app/data
