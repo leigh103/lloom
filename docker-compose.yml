@@ -1,0 +1,11 @@
+services:
+  lloom:
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+      - ./docs:/app/docs
+      - ./config/apis:/app/config/apis
+    restart: unless-stopped
