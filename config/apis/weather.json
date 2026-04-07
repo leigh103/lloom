@@ -1,7 +1,0 @@
-{
-  "name": "weather",
-  "description": "Current weather for any location. Use endpoint '/{city}' with GET params {format: 'j1'}. Example: endpoint '/London' with params {format: 'j1'}. Extract the location from the user's question, default to London if none given.",
-  "baseUrl": "https://wttr.in",
-  "cacheTtlSeconds": 1800,
-  "auth": null
-}

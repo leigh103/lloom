@@ -39,7 +39,7 @@ router.post('/chat', auth, async (req, res) => {
  * Response: Server-Sent Events stream
  */
 router.post('/chat/stream', auth, async (req, res) => {
-  const { message, history = [] } = req.body;
+  const { message, history = [], location } = req.body;
   console.log(`💬 /chat/stream received: "${message?.slice(0, 80)}"`);
 
   if (!message?.trim()) {
@@ -54,6 +54,7 @@ router.post('/chat/stream', auth, async (req, res) => {
     await askMildredStream(
       message,
       history,
+      location,
       (token) => {
         res.write(`data: ${JSON.stringify({ token })}\n\n`);
       },
@@ -80,6 +81,7 @@ router.get('/health', (req, res) => {
     status: 'ok',
     name: process.env.AGENT_NAME || 'Lloom',
     description: process.env.AGENT_DESCRIPTION || 'Personal Ollama agent',
+    location: process.env.DEFAULT_LOCATION || null,
     timestamp: new Date().toISOString(),
   });
 });

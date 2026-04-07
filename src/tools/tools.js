@@ -51,6 +51,48 @@ export const toolDefinitions = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'get_weather',
+      description: 'Get current weather and 3-day forecast for a location. If the user asks about weather without specifying a location, use their location from the system prompt.',
+      parameters: {
+        type: 'object',
+        properties: {
+          location: { type: 'string', description: 'City name, or "lat,lng" coordinates' },
+        },
+        required: ['location'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'calculate',
+      description: 'Evaluate a mathematical expression. Use for arithmetic, percentages, currency conversions, or any calculation.',
+      parameters: {
+        type: 'object',
+        properties: {
+          expression: { type: 'string', description: 'A mathematical expression, e.g. "15% of 84.50" or "sqrt(144) + 20"' },
+        },
+        required: ['expression'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'web_fetch',
+      description: 'Fetch the content of a specific URL. Use when you have a URL and need to read the page.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'The URL to fetch' },
+        },
+        required: ['url'],
+      },
+    },
+  },
 ];
 
 // Add api_call tool only if services are configured
@@ -92,7 +134,7 @@ async function web_search({ query }) {
   }
 
   const res = await axios.get('https://api.search.brave.com/res/v1/web/search', {
-    headers: { 'X-Subscription-Token': key },
+    headers: { 'X-Subscription-Token': key, 'Accept': 'application/json' },
     params: { q: query, count: 5 },
   });
 
@@ -100,6 +142,87 @@ async function web_search({ query }) {
   return results
     .map(r => `**${r.title}**\n${r.description}\n${r.url}`)
     .join('\n\n') || 'No results found.';
+}
+
+const weatherCache = new Map();
+
+async function get_weather({ location }) {
+  const cacheKey = location.toLowerCase();
+  const cached = weatherCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) return cached.data;
+
+  const res = await axios.get(`https://wttr.in/${encodeURIComponent(location)}`, {
+    params: { format: 'j1' },
+    headers: { 'Accept': 'application/json' },
+    timeout: 8000,
+  });
+
+  const d = res.data;
+  const current = d.current_condition?.[0];
+  const area = d.nearest_area?.[0];
+  const place = area?.areaName?.[0]?.value || location;
+  const country = area?.country?.[0]?.value || '';
+
+  const desc = current.weatherDesc?.[0]?.value || '';
+  const tempC = current.temp_C;
+  const feelsC = current.FeelsLikeC;
+  const humidity = current.humidity;
+  const windKmph = current.windspeedKmph;
+  const windDir = current.winddir16Point;
+
+  const days = d.weather?.map(day => {
+    const hi = day.maxtempC;
+    const lo = day.mintempC;
+    const desc = day.hourly?.[4]?.weatherDesc?.[0]?.value || '';
+    return `  ${day.date}: ${desc}, ${lo}–${hi}°C`;
+  }).join('\n') || '';
+
+  const result = `**${place}${country ? ', ' + country : ''}**
+Current: ${desc}, ${tempC}°C (feels like ${feelsC}°C)
+Humidity: ${humidity}%, Wind: ${windKmph}km/h ${windDir}
+
+**3-day forecast:**
+${days}`;
+
+  weatherCache.set(cacheKey, { data: result, expiresAt: Date.now() + 30 * 60 * 1000 });
+  return result;
+}
+
+async function calculate({ expression }) {
+  // Safe evaluation — only allow math characters
+  const sanitised = expression
+    .replace(/[^0-9+\-*/.()%\s,]/g, '')
+    .replace(/(\d+)%\s*of\s*(\d+\.?\d*)/gi, '($1/100)*$2')
+    .replace(/(\d+\.?\d*)%/g, '($1/100)');
+
+  try {
+    // eslint-disable-next-line no-new-func
+    const result = Function(`"use strict"; return (${sanitised})`)();
+    if (typeof result !== 'number' || !isFinite(result)) return 'Could not evaluate that expression.';
+    return `${expression} = ${parseFloat(result.toFixed(10))}`;
+  } catch {
+    return 'Could not evaluate that expression.';
+  }
+}
+
+async function web_fetch({ url }) {
+  const res = await axios.get(url, {
+    headers: { 'Accept': 'text/html,application/json,*/*', 'User-Agent': 'Mozilla/5.0' },
+    responseType: 'text',
+    timeout: 10000,
+  });
+
+  // Strip HTML tags down to readable text
+  const text = String(res.data)
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  return text.length > MAX_RESPONSE_CHARS
+    ? text.slice(0, MAX_RESPONSE_CHARS) + `\n\n[Content truncated — ${text.length} chars total]`
+    : text;
 }
 
 async function api_call({ service: serviceName, endpoint, method = 'GET', params = {} }) {
@@ -147,7 +270,10 @@ async function api_call({ service: serviceName, endpoint, method = 'GET', params
 
 const executors = {
   get_current_datetime,
+  get_weather,
+  calculate,
   web_search,
+  web_fetch,
   api_call,
 };
 

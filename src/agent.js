@@ -84,11 +84,14 @@ export async function askMildred(userMessage, history = []) {
  * onChunk(token)  — called for each streamed token
  * onTool(name, args) — called each time a tool fires, before it executes
  */
-export async function askMildredStream(userMessage, history = [], onChunk, onTool) {
+export async function askMildredStream(userMessage, history = [], location, onChunk, onTool) {
   const chunks = await retrieve(userMessage);
   const context = buildContext(chunks);
 
   let systemContent = SYSTEM_PROMPT;
+  if (location) {
+    systemContent += `\n\nUser's current location: ${location}. Use this when they ask about weather or anything location-specific without specifying a place.`;
+  }
   if (context) {
     systemContent += `\n\n## Relevant Documentation\n\n${context}`;
   }

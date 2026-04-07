@@ -53,6 +53,15 @@
   let agentName = 'Lloom';
   let history = [];
   let isStreaming = false;
+  let userLocation = null;
+
+  // Prefer browser geolocation, fall back to server DEFAULT_LOCATION
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => { userLocation = `${pos.coords.latitude.toFixed(4)},${pos.coords.longitude.toFixed(4)}`; },
+      () => {} // denied or unavailable — server fallback already set from health check
+    );
+  }
 
   // Auto-resize textarea
   inputEl.addEventListener('input', () => {
@@ -89,6 +98,7 @@
         document.getElementById('empty-letter').textContent = initial;
         document.getElementById('empty-text').textContent = `Ask ${agentName} anything`;
         inputEl.placeholder = `Ask ${agentName} something...`;
+        if (data.location) userLocation = data.location;
 
         statusDot.classList.remove('offline');
         statusText.textContent = 'online';
@@ -171,7 +181,7 @@
       const res = await fetch(`${API_BASE}/chat/stream`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ message, history }),
+        body: JSON.stringify({ message, history, location: userLocation }),
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
