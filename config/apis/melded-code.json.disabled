@@ -1,0 +1,16 @@
+{
+  "name": "melded-code",
+  "read": {
+    "files": [
+      "/home/lee/dev_melded_io/components/authentication/controllers/index.js",
+      "/home/lee/dev_melded_io/components/transactions/models/Invoice.js",
+      "/home/lee/dev_melded_io/modules/Models.js",
+      "/home/lee/dev_melded_io/modules/Users.js",
+      "/home/lee/dev_melded_io/components/organisation/models/OrganisationPrices.js",
+      "/home/lee/dev_melded_io/components/organisation/models/OrganisationEquipment.js",
+      "/home/lee/dev_melded_io/components/organisation/models/OrganisationEvents.js",
+      "/home/lee/dev_melded_io/server-33.js"
+    ],
+    "prompt": "Summarise what this file does, its key functions, and how it fits into the application. Be concise."
+  }
+}

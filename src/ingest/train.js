@@ -11,7 +11,19 @@ const DOCS_PATH = process.env.DOCS_PATH || './docs';
 
 const TITLE_CANDIDATES = ['title', 'name', 'heading', 'subject', 'label'];
 const ID_CANDIDATES    = ['slug', 'id', '_id', 'key', 'uuid'];
-const SKIP_PATTERNS    = [/_at$/, /_url$/, /_id$/, /^url$/, /^image/, /^status$/, /^type$/, /^order$/];
+const SKIP_PATTERNS    = [
+  /^_/,          // ArangoDB / internal fields (_id, _key, _rev, _created, _updated, ...)
+  /_at$/,        // timestamp fields (created_at, updated_at, published_at, ...)
+  /_url$/,       // URL fields (image_url, ...)
+  /_id$/,        // ID fields
+  /^urls?$/,     // url / urls
+  /^image/,      // image_url, image, image_path, ...
+  /^status$/,
+  /^type$/,
+  /^guard$/,     // ArangoDB collection guard field
+  /^order$/,
+  /^rev$/,
+];
 
 function detectFields(sample, excludeFields = []) {
   const keys = Object.keys(sample);

@@ -2,7 +2,8 @@ import { getDb } from '../db.js';
 import { embed } from '../ollama.js';
 
 const TOP_K = 5;
-const RRF_K = 60; // RRF constant — higher = less aggressive rank weighting
+const RRF_K = 60;          // RRF constant — higher = less aggressive rank weighting
+const MAX_DISTANCE = 0.95; // discard vector results with no meaningful similarity
 
 /**
  * Build an FTS5 OR query from a natural language string.
@@ -13,7 +14,7 @@ const FTS_STOPWORDS = new Set(['a','an','the','is','it','in','on','of','to','and
 
 function sanitiseFtsQuery(query) {
   const words = query
-    .replace(/['"*^()\[\]{}:]/g, ' ')
+    .replace(/[^a-z0-9\s]/gi, ' ')
     .trim()
     .toLowerCase()
     .split(/\s+/)
@@ -28,15 +29,20 @@ function sanitiseFtsQuery(query) {
 export async function retrieve(query, k = TOP_K) {
   const db = getDb();
 
-  // Vector search — fetch 2× k so RRF has enough candidates from each side
+  // Vector search — fetch 2× k so RRF has enough candidates from each side.
+  // Filter by MAX_DISTANCE to exclude low-quality matches, but if that leaves
+  // too few results, fall back to the raw top-k so the LLM always has something.
   const queryEmbedding = await embed(query);
-  const vecResults = db.prepare(`
+  const allVecResults = db.prepare(`
     SELECT source, chunk, distance
     FROM knowledge_vec
     WHERE embedding MATCH ?
     AND k = ?
     ORDER BY distance
   `).all(new Float32Array(queryEmbedding), k * 2);
+  const vecResults = allVecResults.filter(r => r.distance < MAX_DISTANCE).length >= 2
+    ? allVecResults.filter(r => r.distance < MAX_DISTANCE)
+    : allVecResults;
 
   // BM25 keyword search via FTS5
   let ftsResults = [];

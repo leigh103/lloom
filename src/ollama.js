@@ -18,12 +18,14 @@ const KEEP_ALIVE = process.env.OLLAMA_KEEP_ALIVE === '-1'
 /**
  * Get an embedding vector for a piece of text
  */
-export async function embed(text) {
+// Pass a string for a single embedding, or an array for batch (one request, multiple results)
+export async function embed(input) {
   const res = await axios.post(`${OLLAMA}/api/embed`, {
     model: EMBED_MODEL,
-    input: text,
+    input,
+    keep_alive: -1,
   });
-  return res.data.embeddings[0];
+  return Array.isArray(input) ? res.data.embeddings : res.data.embeddings[0];
 }
 
 /**

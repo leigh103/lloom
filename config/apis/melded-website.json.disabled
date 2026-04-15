@@ -1,0 +1,12 @@
+{
+  "name": "melded-website",
+  "scrape": {
+    "urls": [
+      "https://melded.io",
+      "https://melded.io/features",
+      "https://melded.io/pricing",
+      "https://melded.io/security",
+      "https://melded.io/about"
+    ]
+  }
+}
